@@ -1,0 +1,11 @@
+# Dev Containerではこちらが優先される。
+services:
+  reverse_proxy_app:
+    build:
+      target: devcontainer
+      context: ./reverse_proxy
+      dockerfile: Dockerfile
+    image: reverse_proxy_devcontainer:latest
+    container_name: reverse_proxy-devcontainer-container
+    volumes:
+      - ./reverse_proxy/:/usr/local/openresty/reverse_proxy
