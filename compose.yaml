@@ -1,13 +1,10 @@
-version: '3'
-
 services:
-  react-app: # FIXME
+  reverse_proxy_app:
     build:
-      context: ./
+      context: ./reverse_proxy
       dockerfile: Dockerfile
-    image: react-img-prod:latest # FIXME
-    container_name: react-container-prod # FIXME
-    # ports:
-    #   - 80:8080 # localport:dockerport
-    # volumes:
-    #   - ./:/app
+    image: lua-reverse-proxy:latest
+    container_name: reverse_proxy_container
+    ports:
+      - 80:80 # localport:dockerport
+
