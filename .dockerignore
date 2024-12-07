@@ -1,13 +1,8 @@
-docker_test.sh
 README.md
 .gitignore
 CODEOWNERS
 LICENSE
-.trivyignore
-.pre-commit-config.yaml
 .git/
 .github/
-src/__tests__/*
-copilot/*
 Dockerfile
-docker-compose.yml
+compose.yaml

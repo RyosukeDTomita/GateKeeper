@@ -1,17 +1,14 @@
--- backend_appはcompose.yamlのサービス名であり，これを使って名前解決できる。
-local transfer_ip = "backend_app"
-local transfer_port = 8000
+local basic_auth = require "basic_auth"
+
+-- nginx.confのupstreamブロックを指定してload balance
+local transfer_ip = "proxied_server"
 local transfer_path = "/"
 
+ngx.log(ngx.ERR, "hello, world")
+-- basic_auth.basic_auth()
+
 -- リクエストを転送する先を設定
-ngx.ctx.ip = transfer_ip
-ngx.ctx.port = transfer_port
-ngx.var.pass = "http://" .. transfer_ip .. ":" .. transfer_port .. transfer_path
+ngx.var.pass = "https://" .. transfer_ip .. transfer_path
 
 -- log
-ngx.log(ngx.INFO, "request_url: ", url)
-print("request_url: ", url)
--- nginxのリクエストヘッダにcookieを設定
-ngx.req.set_header("Cookie", "my_cookie=set_header")
-
-
+ngx.log(ngx.INFO, "request_url: ", transfer_ip .. ":" .. transfer_port .. transfer_path)

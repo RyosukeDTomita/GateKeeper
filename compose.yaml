@@ -7,4 +7,11 @@ services:
     container_name: reverse_proxy_container
     ports:
       - 80:80 # localport:dockerport
-
+  redis_app:
+    build:
+      context: ./redis
+      dockerfile: Dockerfile
+    image: redis-img:latest
+    container_name: redis_container
+    ports:
+      - 6379:6379 # localport:dockerport
