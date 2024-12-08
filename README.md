@@ -1,6 +1,6 @@
 # GateKeeper
 
-![un license](https://img.shields.io/github/license/RyosukeDTomita/GateKeeper)-->
+![un license](https://img.shields.io/github/license/RyosukeDTomita/GateKeeper)
 
 ## INDEX
 
@@ -64,7 +64,7 @@ kill 1
 >
 > ```
 > ls -l /usr/local/openresty/nginx/logs/access.log 
-lrwxrwxrwx 1 root root 11 May 25  2022 /usr/local/openresty/nginx/logs/access.log -> /dev/stdout
+> lrwxrwxrwx 1 root root 11 May 25  2022 /usr/local/openresty/nginx/logs/access.log -> /dev/stdout
 > ```
 
 So, the easiest way is `docker logs`

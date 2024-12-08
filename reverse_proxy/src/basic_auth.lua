@@ -1,7 +1,14 @@
+local _M = {}
 local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
 
 function _M.basic_auth()
+    -- リクエストヘッダからBasic認証情報を取得
+    local auth_header = ngx.var.http_Authorization
+    if not auth_header then
+        ngx.header["WWW-Authenticate"] = 'Basic realm="Please enter your ID and password."'
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
     -- redisに接続 compose.yamlのサービス名で名前解決できる
     local ok, err = redis:connect("redis_app", 6379)
     if not ok then
@@ -9,12 +16,4 @@ function _M.basic_auth()
         return ngx.exit(500)
     end
 
-    -- redisから環境変数を取得
-    local env = redis:get("ENV")
-    if err or env == ngx.null then
-        ngx.log(ngx.ERR, "failed to get ENV: ", err)
-        return ngx.exit(500)
-    end
-
-    ngx.log(INFO, "ENV: ", env)
 end
