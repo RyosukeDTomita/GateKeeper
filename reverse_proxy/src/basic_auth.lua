@@ -1,0 +1,60 @@
+local _M = {}
+local resty_redis = require "resty.redis"
+local redis = resty_redis:new()
+
+-- Authorizationヘッダがないならログインのポップアップを出す
+local function is_authorization_header()
+    if not ngx.var.http_Authorization then
+        -- Basic認証のポップアップを出す。
+        ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+end
+
+-- Authorizationヘッダからuseridとpasswordを取得
+local function decode_userid_and_password()
+    local authorization = ngx.var.http_Authorization
+    local base64_decode = ngx.decode_base64(string.sub(authorization, 7)) -- " Basic "を削除してbase64デコード
+    local userid, password = base64_decode:match("([^:]+):([^:]+)")
+    return userid, password
+end
+
+local function get_user_password(user_id)
+    -- redisに接続。 compose.yamlのサービス名で名前解決できる
+    local ok, err = redis:connect("redis_app", 6379)
+    if not ok then
+        -- redisに接続できない場合
+        ngx.log(ngx.ERR, "failed to connect Redis: ", err)
+        return ngx.exit(500)
+    end
+
+    -- redisからユーザのパスワードを取得
+    local password, err = redis:get(user_id)
+    if not password then
+        -- redisからユーザのパスワードが取得できない場合
+        ngx.log(ngx.ERR, "failed to get user password: ", err)
+        return
+    end
+    --redisを切断
+    redis:close()
+    return password
+end
+
+
+function _M.auth()
+    is_authorization_header()
+
+    local user_id, password = decode_userid_and_password()
+    local saved_password = get_user_password(user_id)
+
+    if password == saved_password then
+        ngx.log(ngx.INFO, user_id, " login success")
+        return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
+    else
+        ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+
+end
+
+return _M

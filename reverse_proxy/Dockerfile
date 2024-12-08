@@ -1,17 +1,20 @@
 FROM openresty/openresty:1.21.4.1-0-bullseye-fat AS devcontainer
-WORKDIR /usr/local/openresty
 
-ARG OpenRestyVersion="1.25.3.2"
+# NOTE: nginxの-pオプションの代わりにWORKDIRで指定
+WORKDIR /usr/local/openresty
 USER root
 
 RUN apt-get update
-
+# libreadline-def: For gcc build Lua
+# libssl-dev, m4: For luarocks install http
 RUN <<EOF bash -ex
 apt install -y --no-install-recommends \
     gcc \
     unzip \
     make \
-    libreadline-dev
+    libreadline-dev \
+    libssl-dev \
+    m4
 EOF
 
 # install Python3 to install HereRocks
@@ -26,17 +29,20 @@ EOF
 # install LuaRocks
 RUN hererocks lua54 -l 5.4 -r latest
 
-# install lua libraries
+# build LuaRocks from rockspec
+# TODO: ライブラリをrockspeckとかで管理したい
 RUN <<EOF bash -ex
 PATH=$PATH":/usr/local/openresty/lua54/bin"
 luarocks install lua-resty-redis
+luarocks install lua-resty-template
+luarocks install lua-resty-string
+luarocks install http
+luarocks install lua-resty-balancer
 EOF
 
+COPY ./conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY ./ /usr/local/openresty/reverse_proxy
+EXPOSE 80
+# Not using daemon mode.
+CMD ["openresty", "-g", "daemon off;"]
 
-# FROM devcontainer AS deploy
-# # nginxの-pオプションの代わりにWORKDIRを指定
-# WORKDIR /usr/local/openresty/reverse_proxy
-# COPY ./conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-# EXPOSE 80
-# # Not using daemon mode.
-# CMD ["openresty", "-g", "daemon off;"]
