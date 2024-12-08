@@ -16,7 +16,8 @@
         "oderwat.indent-rainbow",
         "ionutvmi.path-autocomplete",
         "sumneko.lua",
-        "trixnz.vscode-lua"
+        "trixnz.vscode-lua",
+        "gccfeli.vscode-lua"
       ]
     }
   }

@@ -41,6 +41,7 @@ luarocks install lua-resty-balancer
 EOF
 
 COPY ./conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY ./ /usr/local/openresty/reverse_proxy
 EXPOSE 80
 # Not using daemon mode.
 CMD ["openresty", "-g", "daemon off;"]
