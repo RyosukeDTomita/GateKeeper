@@ -8,4 +8,4 @@ ngx.var.pass = transfer_host .. transfer_path
 
 basic_auth.auth()
 
--- ngx.log(ngx.INFO, "request_url: ", ngx.var.pass);
+ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass);

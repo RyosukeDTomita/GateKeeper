@@ -19,6 +19,7 @@ local function decode_userid_and_password()
     return userid, password
 end
 
+-- redisからユーザのパスワードを取得
 local function get_user_password(user_id)
     -- redisに接続。 compose.yamlのサービス名で名前解決できる
     local ok, err = redis:connect("redis_app", 6379)
@@ -28,11 +29,11 @@ local function get_user_password(user_id)
         return ngx.exit(500)
     end
 
-    -- redisからユーザのパスワードを取得
+    -- TODO: pwをハッシュにするとかしたい
     local password, err = redis:get(user_id)
     if not password then
         -- redisからユーザのパスワードが取得できない場合
-        ngx.log(ngx.ERR, "failed to get user password: ", err)
+        ngx.log(ngx.ERR, "failed to get", user_id "password: ", err)
         return
     end
     --redisを切断
@@ -45,16 +46,17 @@ function _M.auth()
     is_authorization_header()
 
     local user_id, password = decode_userid_and_password()
+    ngx.log(ngx.INFO, "TRYING TO LOGIN: ", user_id)
     local saved_password = get_user_password(user_id)
 
     if password == saved_password then
-        ngx.log(ngx.INFO, user_id, " login success")
+        ngx.log(ngx.INFO, "LOGIN SUCCESS: ", user_id)
         return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
+        ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)
         ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
-
 end
 
 return _M
