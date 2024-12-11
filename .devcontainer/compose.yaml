@@ -20,3 +20,13 @@ services:
     container_name: redis_container
     ports:
       - 6379:6379 # localport:dockerport
+  # redis_appに初期パスワー投入するためのクライアント
+  redis_client:
+    image: redis:latest
+    volumes:
+      - ./redis/initial_data_redis.sh:/tmp/initial_data_redis.sh
+    command: >
+      /bin/bash -c 'source /tmp/initial_data_redis.sh'
+    depends_on:
+      - redis_app
+
