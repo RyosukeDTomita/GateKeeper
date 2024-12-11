@@ -177,18 +177,27 @@ TODO: そのうちちゃんと公式ドキュメントを読む
 > - emerg: Emergency situations where the system is in an unusable state.
 
 > - alert: Severe situation where action is needed promptly.
-
 > - crit: Important problems that need to be addressed.
-
 > - error: An Error has occurred. Something was unsuccessful.
-
 > - warn: Something out of the ordinary happened, but not a cause for concern.
-
 > - notice: Something normal, but worth noting has happened.
-
 > - info: An informational message that might be nice to know.
-
 > - debug: Debugging information that can be useful to pinpoint where a problem is occurring.
 
 
+#### variables
 
+##### `uri` vs `request_uri`
+
+> $request_uri
+>    full original request URI (with arguments)
+
+> $uri
+>    current URI in request, normalized
+>    The value of $uri may change during request processing, e.g. when doing internal redirects, or when using index files.
+
+- uriは正規化されている。相対パスを直したりとか，パーセントデコードとか
+- uriはリクエストの処理過程で変わる
+- uriはクエリパラメータなし
+
+[nginxの$request_uriと$uri](https://blog.utgw.net/entry/2020/03/12/121959)あたりも参考になりそう。

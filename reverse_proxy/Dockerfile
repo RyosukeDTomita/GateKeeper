@@ -29,7 +29,6 @@ EOF
 # install LuaRocks
 RUN hererocks lua54 -l 5.4 -r latest
 
-# build LuaRocks from rockspec
 # TODO: ライブラリをrockspeckとかで管理したい
 RUN <<EOF bash -ex
 PATH=$PATH":/usr/local/openresty/lua54/bin"
@@ -38,6 +37,7 @@ luarocks install lua-resty-template
 luarocks install lua-resty-string
 luarocks install http
 luarocks install lua-resty-balancer
+luarocks install lua-cjson
 EOF
 
 COPY ./conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf

@@ -13,14 +13,15 @@ services:
       dockerfile: Dockerfile
     image: redis-img:latest
     container_name: redis_container
-    volumes:
-      - ./initial_data_redis.txt:/tmp/initial_data_redis.txt
     ports:
       - 6379:6379 # localport:dockerport
   # redis_appに初期パスワー投入するためのクライアント
   redis_client:
     image: redis:latest
+    volumes:
+      - ./redis/initial_data_redis.sh:/tmp/initial_data_redis.sh
     command: >
-      /bin/bash -c 'cat /tmp/initial_data_redis.txt | redis-cli -h 127.0.0.1 -p 6379 SET user "password"'
+      /bin/bash -c 'source /tmp/initial_data_redis.sh'
     depends_on:
       - redis_app
+

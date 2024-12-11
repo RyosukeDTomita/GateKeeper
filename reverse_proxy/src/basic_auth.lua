@@ -30,13 +30,12 @@ local function get_user_password(user_id)
     end
 
     -- TODO: pwをハッシュにするとかしたい
-    local password, err = redis:get(user_id)
+    local password, err = redis:get("USER|" .. user_id)
     if not password then
         -- redisからユーザのパスワードが取得できない場合
         ngx.log(ngx.ERR, "failed to get", user_id "password: ", err)
         return
     end
-    --redisを切断
     redis:close()
     return password
 end
@@ -53,6 +52,7 @@ function _M.auth()
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", user_id)
         return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
+        --認証失敗時には再度Basic認証のポップアップを出す
         ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)
         ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
