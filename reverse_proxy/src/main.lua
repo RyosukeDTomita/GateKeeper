@@ -29,7 +29,14 @@ local function get_acl(request_uri)
     return acl
 end
 
+-- NOTE: 簡易的なURLの正規化をしてredisのキーとして利用する
 local request_uri = ngx.var.request_uri:gsub("/", "")
+
+-- localhostにアクセスした場合にはindex.htmlを返す。
+if request_uri == "" then
+    ngx.var.pass = "http://" .. ngx.var.hostname .. "/index.html"
+    return
+end
 local acl = get_acl(request_uri)
 ngx.var.pass = acl.proxy_pass
 
