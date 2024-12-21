@@ -32,7 +32,7 @@ luarocks install lua-resty-template
 
 [OpenResty](https://openresty.org/en/)
 
-### What's OpenResty
+### What is OpenResty?
 
 [3つのnginxをうまく使い分けよう](https://engineering.mercari.com/blog/entry/2016-05-25-170108/)
 
@@ -95,7 +95,7 @@ http {
     }
 ```
 
-#### Reverse Proxy
+#### Reverse Proxy settings
 
 > In the first location block, put the proxy_pass directive with the protocol, name and port of the proxied server specified in the parameter (in our case, it is http://localhost:8080):
 
@@ -201,3 +201,23 @@ TODO: そのうちちゃんと公式ドキュメントを読む
 - uriはクエリパラメータなし
 
 [nginxの$request_uriと$uri](https://blog.utgw.net/entry/2020/03/12/121959)あたりも参考になりそう。
+
+##### ngx.arg
+
+[逆引きlua-nginx-module]()https://gist.github.com/ykst/52205d4d4968298137ea0050c4569170
+
+> `ngx.arg[1]`にオリジナルのbodyが入っている
+
+---
+
+### favicon.ico
+
+- favicon.icoのログが貯まるのは面倒なので，access_logをオフにしておく。
+
+```
+        location = /favicon.ico {
+            root /usr/local/openresty/reverse_proxy/html;
+            default_type 'image/x-icon';
+            access_log off;
+        }
+```

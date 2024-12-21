@@ -6,7 +6,7 @@ local redis = resty_redis:new()
 local function is_authorization_header()
     if not ngx.var.http_Authorization then
         -- Basic認証のポップアップを出す。
-        ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
+        ngx.header["WWW-Authenticate"] = 'Basic realm="' .. ngx.var.host .. '/basic Restricted"'
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 end
@@ -54,7 +54,7 @@ function _M.auth()
     else
         --認証失敗時には再度Basic認証のポップアップを出す
         ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)
-        ngx.header["WWW-Authenticate"] = 'Basic realm="Restricted"'
+        ngx.header["WWW-Authenticate"] = 'Basic realm="' .. ngx.var.host .. '/basic Restricted"'
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 end

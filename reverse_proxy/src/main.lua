@@ -1,7 +1,7 @@
 local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
-
 local basic_auth = require "basic_auth"
+local digest_auth = require "digest_auth"
 
 -- redisからACLを取得して認証方式を選択する
 local function get_acl(request_uri)
@@ -29,20 +29,27 @@ local function get_acl(request_uri)
     return acl
 end
 
+
 -- NOTE: 簡易的なURLの正規化をしてredisのキーとして利用する
 local request_uri = ngx.var.request_uri:gsub("/", "")
 
--- localhostにアクセスした場合にはindex.htmlを返す。
+-- /にアクセスした場合にはindex.htmlを返す。
 if request_uri == "" then
     ngx.var.pass = "http://" .. ngx.var.hostname .. "/index.html"
     return
 end
+
+-- redisのaclから転送先のurlを取得する
 local acl = get_acl(request_uri)
-ngx.var.pass = acl.proxy_pass
+ngx.var.pass = acl.proxy_pass .. "/" -- NOTE: 末尾に/をつけないと$request_urlの値が末尾につくため，404エラーになる
 
 -- localhost/basicにアクセスした場合
-if acl["authentication_type"] == "basic" then basic_auth.auth() end
+if acl["authentication_type"] == "basic" then
+    basic_auth.auth()
+-- localhost/digestにアクセスした場合
+elseif acl["authentication_type"] == "digest" then
+    digest_auth.auth()
+end
 
-ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, "REQUEST_URI: ",
-        ngx.var.request_uri, "AUTH_TYPE: ", acl["authentication_type"]);
-ngx.log(ngx.INFO, "STATUS CODE PROXY_PASS: ", ngx.var.status_code);
+ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, ", REQUEST_URI: ",
+        ngx.var.request_uri, ", AUTH_TYPE: ", acl["authentication_type"]);
