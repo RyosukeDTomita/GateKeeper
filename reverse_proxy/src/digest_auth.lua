@@ -1,0 +1,117 @@
+local _M = {}
+local resty_redis = require "resty.redis"
+local redis = resty_redis:new()
+local resty_md5 = require "resty.md5"
+local str = require "resty.string"
+local resty_random = require "resty.random"
+-- NOTE: attempt to call global 'create_nonce' (a nil value)が出ることがあるので先に宣言しておく
+local create_nonce
+local md5_hash
+local create_www_authenticate
+
+
+-- nonceを生成する関数
+local function create_nonce()
+    -- NOTE: ETagの代わりに乱数を使う
+    local random_bytes = resty_random.bytes
+    local nonce = ngx.time() .. ":" .. random_bytes(3) .. ":" .. ngx.var.secret_data
+    return nonce
+end
+
+
+local function create_www_authenticate()
+    local nonce = create_nonce()
+    return 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. 'algorithm=MD5"'
+end
+
+
+-- Digest認証のポップアップを出す。
+local function is_authorization_header()
+    if not ngx.var.http_authorization then
+        local nonce = create_nonce()
+        --ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. 'algorithm=MD5"'
+        ngx.header["WWW-Authenticate"] = create_www_authenticate()
+        ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+end
+
+
+-- Authorizationヘッダをパースしてユーザ名、パスワードのハッシュ、nonceを取得
+local function parse_authorization_header()
+    local authorization = ngx.var.http_authorization
+    ngx.log(ngx.INFO, "Authorization: ", authorization)
+
+    local auth_params = {}
+    -- NOTE: qop, ncの値が""で囲まれていないので，後から取得する
+    for k, v in string.gmatch(authorization, '(%w+)="([^"]+)"') do
+        auth_params[k] = v
+    end
+    
+    local username = auth_params.username
+    local realm = auth_params.realm
+    local nonce = auth_params.nonce
+    local uri = auth_params.uri
+    local response = auth_params.response
+    local qop = authorization:match('qop=([^,]+)')
+    local nc = authorization:match('nc=([^,]+)')
+    local cnonce = auth_params.cnonce
+
+    --ngx.log(ngx.INFO, "Parsed Authorization - username: ", username, ", realm: ", realm, ", nonce: ", nonce, ", uri: ", uri, ", response: ", response, ", qop: ", qop, ", nc: ", nc, ", cnonce: ", cnonce)
+    return username, realm, nonce, uri, response, qop, nc, cnonce
+end
+
+
+-- redisからユーザIDに対応するパスワードを取得
+local function get_password_hash(user_id)
+    -- redisに接続。 compose.yamlのサービス名で名前解決できる
+    local ok, err = redis:connect("redis_app", 6379)
+    if not ok then
+        ngx.log(ngx.ERR, "failed to connect to redis: ", err)
+        return nil
+    end
+
+    local res, err = redis:get("USER|" .. user_id)
+    if not res then
+        ngx.log(ngx.ERR, "failed to get password: ", err)
+        return nil
+    end
+    return res
+end
+
+
+-- MD5ハッシュを計算する関数
+local function md5_hash(data)
+    local md5 = resty_md5:new()
+    md5:update(data)
+    return str.to_hex(md5:final())
+end
+
+
+function _M.auth()
+    is_authorization_header()
+
+    local username, realm, nonce, uri, response, qop, nc, cnonce = parse_authorization_header()
+    ngx.log(ngx.INFO, "TRYING TO LOGIN: ", username)
+    local password = get_password_hash(username)
+
+    -- HA1 = MD5(username:realm:password)
+    local ha1 = md5_hash(username .. ":" .. realm .. ":" .. password)
+    -- HA2 = MD5(method:digestURI)
+    local ha2 = md5_hash(ngx.req.get_method() .. ":" .. uri)
+    -- response = MD5(HA1:nonce:nc:cnonce:qop:HA2)
+    local expected_response = md5_hash(ha1 .. ":" .. nonce .. ":" .. nc .. ":" .. cnonce .. ":" .. qop .. ":" .. ha2)
+
+    if response == expected_response then
+        ngx.log(ngx.INFO, "LOGIN SUCCESS: ", username)
+        return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
+    else
+        --認証失敗時には再度Digest認証のポップアップを出す
+        ngx.log(ngx.INFO, "LOGIN FAILED: ", username)
+        local nonce = create_nonce()
+        ngx.header["WWW-Authenticate"] = create_www_authenticate()
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+end
+
+return _M
