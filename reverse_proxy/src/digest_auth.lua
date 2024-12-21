@@ -14,14 +14,14 @@ local create_www_authenticate
 local function create_nonce()
     -- NOTE: ETagの代わりに乱数を使う
     local random_bytes = resty_random.bytes
-    local nonce = ngx.time() .. ":" .. random_bytes(3) .. ":" .. ngx.var.secret_data
+    local nonce = ngx.encode_base64(ngx.time() .. ":" .. random_bytes(3) .. ":" .. ngx.var.secret_data)
     return nonce
 end
 
 
 local function create_www_authenticate()
     local nonce = create_nonce()
-    return 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. 'algorithm=MD5"'
+    return 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
 end
 
 
@@ -29,7 +29,6 @@ end
 local function is_authorization_header()
     if not ngx.var.http_authorization then
         local nonce = create_nonce()
-        --ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. 'algorithm=MD5"'
         ngx.header["WWW-Authenticate"] = create_www_authenticate()
         ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
@@ -40,8 +39,7 @@ end
 -- Authorizationヘッダをパースしてユーザ名、パスワードのハッシュ、nonceを取得
 local function parse_authorization_header()
     local authorization = ngx.var.http_authorization
-    ngx.log(ngx.INFO, "Authorization: ", authorization)
-
+    -- ngx.log(ngx.INFO, "Authorization: ", authorization)
     local auth_params = {}
     -- NOTE: qop, ncの値が""で囲まれていないので，後から取得する
     for k, v in string.gmatch(authorization, '(%w+)="([^"]+)"') do
@@ -62,7 +60,7 @@ local function parse_authorization_header()
 end
 
 
--- redisからユーザIDに対応するパスワードを取得
+-- redisからユーザIDに対応するパスワードを取得する。
 local function get_password_hash(user_id)
     -- redisに接続。 compose.yamlのサービス名で名前解決できる
     local ok, err = redis:connect("redis_app", 6379)
@@ -74,6 +72,10 @@ local function get_password_hash(user_id)
     local res, err = redis:get("USER|" .. user_id)
     if not res then
         ngx.log(ngx.ERR, "failed to get password: ", err)
+        return nil
+    end
+    -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうバグを修正
+    if type(res) == "userdata" then
         return nil
     end
     return res
@@ -93,7 +95,14 @@ function _M.auth()
 
     local username, realm, nonce, uri, response, qop, nc, cnonce = parse_authorization_header()
     ngx.log(ngx.INFO, "TRYING TO LOGIN: ", username)
+
     local password = get_password_hash(username)
+    if not password then
+        ngx.log(ngx.INFO, "NOT FOUND: ", username)
+        local nonce = create_nonce()
+        ngx.header["WWW-Authenticate"] = create_www_authenticate()
+        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
 
     -- HA1 = MD5(username:realm:password)
     local ha1 = md5_hash(username .. ":" .. realm .. ":" .. password)
