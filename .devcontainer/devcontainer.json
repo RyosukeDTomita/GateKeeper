@@ -15,9 +15,10 @@
         "exiasr.hadolint",
         "oderwat.indent-rainbow",
         "ionutvmi.path-autocomplete",
-        "sumneko.lua",
-        "trixnz.vscode-lua",
-        "gccfeli.vscode-lua"
+        "gccfeli.vscode-lua", // language support
+        "sumneko.lua", // Language Server
+        "trixnz.vscode-lua", // linter
+        "Koihik.vscode-lua-format" // formatter
       ]
     }
   }

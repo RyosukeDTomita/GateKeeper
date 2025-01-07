@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basic Authentication</title>
+    <title>Form Authentication</title>
 </head>
 <body>
     <div>
-        <p id="login_form">
-        <p>Enter your ID and password</p>
-        <p><input type="text" name="login_id" placeholder="user ID"></p>
-        <p><input type="password" name="login_pw" placeholder="password"></p>
-        <p><input type="button" id="login_button"value="LOGIN"></p>
-        <p style="display:none" id="login_result">failed to login</p>
+        <form method="POST" action="/form_auth">
+            <p>Enter your username and password</p>
+            <p><input type="text" name="username" placeholder="Username"></p>
+            <p><input type="password" name="password" placeholder="Password"></p>
+            <p><input type="submit" value="Login"></p>
+        </form>
+        <p style="display:none" id="login_result">Failed to login</p>
     </div>
 </body>
 </html>

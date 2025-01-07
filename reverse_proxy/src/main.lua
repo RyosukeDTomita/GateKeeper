@@ -2,6 +2,10 @@ local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
 local basic_auth = require "basic_auth"
 local digest_auth = require "digest_auth"
+--local form_auth = require "form_auth"
+
+-- redisに接続する TODO: 接続先を別ファイルに外だしする
+
 
 -- redisからACLを取得して認証方式を選択する
 local function get_acl(request_uri)
@@ -49,7 +53,11 @@ if acl["authentication_type"] == "basic" then
 -- localhost/digestにアクセスした場合
 elseif acl["authentication_type"] == "digest" then
     digest_auth.auth()
+-- localhost/formにアクセスした場合
+elseif acl["authentication_type"] == "form" then
+    --form_auth.auth()
+    ngx.log(ngx.INFO, "WIP");
 end
-
 ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, ", REQUEST_URI: ",
         ngx.var.request_uri, ", AUTH_TYPE: ", acl["authentication_type"]);
+

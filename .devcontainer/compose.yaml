@@ -11,6 +11,7 @@ services:
       - ./reverse_proxy/:/usr/local/openresty/reverse_proxy
       # NOTE: サブディレクトリであるreverse_proxy/をマウントしているため，install-pkg.shをコンテナに追加する必要がある。
       - ./.devcontainer:/usr/local/openresty/.devcontainer
+      - ./.devcontainer/cache:/cache
 
   redis_app:
     build:
