@@ -8,6 +8,7 @@ local resty_random = require "resty.random"
 local create_nonce
 local md5_hash
 local create_www_authenticate
+local connect_redis
 
 
 -- nonceを生成する関数
