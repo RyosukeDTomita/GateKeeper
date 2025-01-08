@@ -25,7 +25,7 @@ local function create_www_authenticate()
 end
 
 
--- Digest認証のポップアップを出す。
+-- Authorizationヘッダが空の時にDigest認証のポップアップを出す。
 local function is_authorization_header()
     if not ngx.var.http_authorization then
         local nonce = create_nonce()
@@ -36,10 +36,21 @@ local function is_authorization_header()
 end
 
 
+-- redisに接続する。compose.yamlのサービス名で名前解決できる
+local function connect_redis(redis_fqdn, redis_port)
+    local ok, err = redis:connect(redis_fqdn, redis_port)
+    if not ok then
+        -- redisに接続できない場合
+        ngx.log(ngx.ERR, "failed to connect Redis: ", err)
+        return ngx.exit(500)
+    end
+    return redis
+end
+
+
 -- Authorizationヘッダをパースしてユーザ名、パスワードのハッシュ、nonceを取得
 local function parse_authorization_header()
     local authorization = ngx.var.http_authorization
-    -- ngx.log(ngx.INFO, "Authorization: ", authorization)
     local auth_params = {}
     -- NOTE: qop, ncの値が""で囲まれていないので，後から取得する
     for k, v in string.gmatch(authorization, '(%w+)="([^"]+)"') do
@@ -54,7 +65,6 @@ local function parse_authorization_header()
     local qop = authorization:match('qop=([^,]+)')
     local nc = authorization:match('nc=([^,]+)')
     local cnonce = auth_params.cnonce
-
     --ngx.log(ngx.INFO, "Parsed Authorization - username: ", username, ", realm: ", realm, ", nonce: ", nonce, ", uri: ", uri, ", response: ", response, ", qop: ", qop, ", nc: ", nc, ", cnonce: ", cnonce)
     return username, realm, nonce, uri, response, qop, nc, cnonce
 end
@@ -62,23 +72,18 @@ end
 
 -- redisからユーザIDに対応するパスワードを取得する。
 local function get_password_hash(user_id)
-    -- redisに接続。 compose.yamlのサービス名で名前解決できる
-    local ok, err = redis:connect("redis_app", 6379)
-    if not ok then
-        ngx.log(ngx.ERR, "failed to connect to redis: ", err)
-        return nil
-    end
+    local redis = connect_redis("redis_app", 6379)
 
-    local res, err = redis:get("USER|" .. user_id)
-    if not res then
+    local password, err = redis:get("USER|" .. user_id)
+    if not password then
         ngx.log(ngx.ERR, "failed to get password: ", err)
         return nil
     end
-    -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうバグを修正
-    if type(res) == "userdata" then
+    -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうので，nilを返す
+    if type(password) == "userdata" then
         return nil
     end
-    return res
+    return password
 end
 
 
@@ -122,5 +127,4 @@ function _M.auth()
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 end
-
 return _M

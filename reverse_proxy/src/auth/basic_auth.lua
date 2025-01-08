@@ -2,6 +2,7 @@ local _M = {}
 local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
 
+
 -- Authorizationヘッダがないならログインのポップアップを出す
 local function is_authorization_header()
     if not ngx.var.http_Authorization then
@@ -11,6 +12,7 @@ local function is_authorization_header()
     end
 end
 
+
 -- Authorizationヘッダからuseridとpasswordを取得
 local function decode_userid_and_password()
     local authorization = ngx.var.http_Authorization
@@ -19,15 +21,22 @@ local function decode_userid_and_password()
     return userid, password
 end
 
--- redisからユーザのパスワードを取得
-local function get_user_password(user_id)
-    -- redisに接続。 compose.yamlのサービス名で名前解決できる
-    local ok, err = redis:connect("redis_app", 6379)
+
+-- redisに接続する。compose.yamlのサービス名で名前解決できる
+local function connect_redis(redis_fqdn, redis_port)
+    local ok, err = redis:connect(redis_fqdn, redis_port)
     if not ok then
         -- redisに接続できない場合
         ngx.log(ngx.ERR, "failed to connect Redis: ", err)
         return ngx.exit(500)
     end
+    return redis
+end
+
+
+-- redisからユーザのパスワードを取得
+local function get_user_password(user_id)
+    local redis = connect_redis("redis_app", 6379)
 
     -- TODO: pwをハッシュにするとかしたい
     local password, err = redis:get("USER|" .. user_id)
@@ -58,6 +67,4 @@ function _M.auth()
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 end
-
 return _M
-
