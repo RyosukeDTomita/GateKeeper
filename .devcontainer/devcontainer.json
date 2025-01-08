@@ -9,6 +9,7 @@
   "overrideCommand": true, // NOTE: DockerfileのCMDで永続コマンド(openresty)を実行しているが，openrestyの再起動のたびにbuildが必要なのは面倒なのでoverrideCommandをtrueにし，postStartCommandでopenrestyを起動している。
   "postStartCommand": "openresty",
   "postCreateCommand": "./.devcontainer/install-pkg.sh",
+  "remoteUser": "root",
   "customizations": {
     "vscode": {
       "extensions": [
