@@ -50,18 +50,18 @@ nginx can be devided into 4 types.
 > nginx consists of modules which are controlled by directives specified in the configuration file. Directives are divided into simple directives and block directives. A simple directive consists of the name and parameters separated by spaces and ends with a semicolon (;). A block directive has the same structure as a simple directive, but instead of the semicolon it ends with a set of additional instructions surrounded by braces ({ and }). If a block directive can have other directives inside braces, it is called a context (examples: events, http, server, and location).
 
 nginx.confは以下で構成される。
+
 - Simple directive: パラメータと値を空白で区切ってセミコロンで終わる 。e.g. `worker_processes 1;`
 - block directive: {}で囲まれる。
   - block directiveの中にblock directiveが記載される場合はこれをcontextと呼ぶ。
 
-> The events and http directives reside in the main context, server in http, and location in server. 
+> The events and http directives reside in the main context, server in http, and location in server.
 
 - main(明示的に書かない)
   - http
     - server
     - location
   - events
-
 
 #### `server` block
 
@@ -80,7 +80,6 @@ http {
 }
 ```
 
-
 #### `location` block
 
 > This location block specifies the “/” prefix compared with the URI from the request. For matching requests, the URI will be added to the path specified in the root directive, that is, to /data/www, to form the path to the requested file on the local file system.
@@ -97,7 +96,7 @@ http {
 
 #### Reverse Proxy settings
 
-> In the first location block, put the proxy_pass directive with the protocol, name and port of the proxied server specified in the parameter (in our case, it is http://localhost:8080):
+> In the first location block, put the proxy_pass directive with the protocol, name and port of the proxied server specified in the parameter (in our case, it is <http://localhost:8080>):
 
 `proxy_pass`にプロキシされるサーバを指定する。
 
@@ -113,10 +112,12 @@ server {
     }
 }
 ```
+
 [Passing Request Headers](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)
 
 > By default, NGINX redefines two header fields in proxied requests, “Host” and “Connection”, and eliminates the header fields whose values are empty strings. “Host” is set to the $proxy_host variable, and “Connection” is set to close.
 NGINXではプロキシされるリクエストに対してデフォルトでは以下を実施している。
+
 - HTTPヘッダーの`Host`と`Connection`が上書きされている。
   - `Host`: (`$proxy_pass`に指定したFQDN)`$proxy_host`に書き換わる
   > [!NOTE]
@@ -133,7 +134,7 @@ NGINXではプロキシされるリクエストに対してデフォルトでは
 
 [Nginx Documentation events](https://nginx.org/en/docs/ngx_core_module.html#events)
 
-> Provides the configuration file context in which the directives that affect connection processing are specified. 
+> Provides the configuration file context in which the directives that affect connection processing are specified.
 
 接続処理に関係のあるディレクティブを指定する。
 
@@ -161,7 +162,7 @@ upstream backend {
 ```
 
 > [!NOTE]
-> `upstream backend`を定義した場合`proxy_pass`などでhttp://backendを指定した場合に名前解決される。
+> `upstream backend`を定義した場合`proxy_pass`などで<http://backendを指定した場合に名前解決される。>
 
 #### Alphabetical index of variables
 
@@ -175,7 +176,6 @@ nginxではlogレベルを使うことで出力するログを制御できる。
 TODO: そのうちちゃんと公式ドキュメントを読む
 
 > - emerg: Emergency situations where the system is in an unusable state.
-
 > - alert: Severe situation where action is needed promptly.
 > - crit: Important problems that need to be addressed.
 > - error: An Error has occurred. Something was unsuccessful.
@@ -184,13 +184,12 @@ TODO: そのうちちゃんと公式ドキュメントを読む
 > - info: An informational message that might be nice to know.
 > - debug: Debugging information that can be useful to pinpoint where a problem is occurring.
 
-
 #### variables
 
 ##### `uri` vs `request_uri`
 
 > $request_uri
->    full original request URI (with arguments)
+> full original request URI (with arguments)
 
 > $uri
 >    current URI in request, normalized
@@ -204,7 +203,7 @@ TODO: そのうちちゃんと公式ドキュメントを読む
 
 ##### ngx.arg
 
-[逆引きlua-nginx-module]()https://gist.github.com/ykst/52205d4d4968298137ea0050c4569170
+[逆引きlua-nginx-module]()<https://gist.github.com/ykst/52205d4d4968298137ea0050c4569170>
 
 > `ngx.arg[1]`にオリジナルのbodyが入っている
 

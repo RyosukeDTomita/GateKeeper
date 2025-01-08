@@ -6,7 +6,8 @@
   ],
   "service": "reverse_proxy_app", // compose.yamlのサービス名
   "workspaceFolder": "/usr/local/openresty",
-  // Dev Container起動時に開発ツールをインストール
+  "overrideCommand": true, // NOTE: DockerfileのCMDで永続コマンド(openresty)を実行しているが，openrestyの再起動のたびにbuildが必要なのは面倒なのでoverrideCommandをtrueにし，postStartCommandでopenrestyを起動している。
+  "postStartCommand": "openresty",
   "postCreateCommand": "./.devcontainer/install-pkg.sh",
   "customizations": {
     "vscode": {
@@ -15,9 +16,10 @@
         "exiasr.hadolint",
         "oderwat.indent-rainbow",
         "ionutvmi.path-autocomplete",
-        "sumneko.lua",
-        "trixnz.vscode-lua",
-        "gccfeli.vscode-lua"
+        "gccfeli.vscode-lua", // language support
+        "sumneko.lua", // Language Server
+        "trixnz.vscode-lua", // linter
+        "Koihik.vscode-lua-format" // formatter
       ]
     }
   }

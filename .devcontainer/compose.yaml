@@ -9,8 +9,10 @@ services:
     container_name: reverse_proxy-devcontainer-container
     volumes:
       - ./reverse_proxy/:/usr/local/openresty/reverse_proxy
-      # NOTE: サブディレクトリであるreverse_proxy/をマウントしているため，install-pkg.shをコンテナに追加する必要がある。
+      # NOTE: install-pkg.shをコンテナに追加する
       - ./.devcontainer:/usr/local/openresty/.devcontainer
+      # NOTE: ./install-pkg.shでインストールしたパッケージをキャッシュするためのディレクトリ
+      - ./.devcontainer/cache:/cache 
 
   redis_app:
     build:
@@ -20,7 +22,7 @@ services:
     container_name: redis_container
     ports:
       - 6379:6379 # localport:dockerport
-  # redis_appに初期パスワー投入するためのクライアント
+  # NOTE: redis_appに初期データを投入するために一時的なコンテナを立ち上げている。
   redis_client:
     image: redis:latest
     volumes:

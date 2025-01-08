@@ -9,14 +9,11 @@
     "MD010": false, // タブ
     "MD013": false // 長い行
   },
-  // python
-  // NOTE: venvを使っている場合は，pythonのinterpreterPathが通っていないとformatterが動かない。
-  "python.defaultInterpreterPath": "/app/.venv/bin/python",
-
-  "flake8.args": ["--ignore=E111, E114, E402, E501"],
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnType": true,
+  "[lua]": {
+    "editor.defaultFormatter": "Koihik.vscode-lua-format",
+    "editor.tabSize": 4,
+    "editor.indentSize": 4,
     "editor.formatOnSave": true,
+    "editor.formatOnType": true,
   },
 }
