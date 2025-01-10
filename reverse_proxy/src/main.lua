@@ -11,7 +11,7 @@ local function connect_redis(redis_fqdn, redis_port)
     if not ok then
         -- redisに接続できない場合
         ngx.log(ngx.ERR, "failed to connect Redis: ", err)
-        return ngx.exit(500)
+        return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     return redis
 end
@@ -21,15 +21,14 @@ end
 local function get_acl(request_uri)
     local redis = connect_redis("redis_app", 6379)
     local acl_hash, err = redis:hgetall("ACL|" .. request_uri)
-    -- acl_hashが{}の場合は404を返す
-    if not next(acl_hash) then
-        ngx.log(ngx.INFO, "acl_hash is empty")
-        return ngx.exit(404)
+    -- acl_hashが空
+    if not acl_hash or #acl_hash == 0 then
+        ngx.log(ngx.ERR, "acl_hash is empty")
+        return ngx.exit(ngx.HTTP_NOT_FOUND)
     end
-    -- TODO: ディレクトリの存在が露呈しないように修正(現状ACLが存在しない場合は404を返す)
     if err then
         ngx.log(ngx.ERR, "failed to get ACL: ", err)
-        return ngx.exit(500)
+        return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
 
     local acl = redis:array_to_hash(acl_hash)
@@ -45,6 +44,7 @@ if request_uri == "" then
     ngx.var.pass = "http://" .. ngx.var.hostname .. "/index.html"
     return
 end
+
 local acl = get_acl(request_uri)
 
 -- proxy_passを更新して転送先のURLを設定

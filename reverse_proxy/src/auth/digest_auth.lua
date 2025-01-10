@@ -8,6 +8,7 @@ local resty_random = require "resty.random"
 local create_nonce
 local md5_hash
 local create_www_authenticate
+local connect_redis
 
 
 -- nonceを生成する関数
@@ -19,20 +20,19 @@ local function create_nonce()
 end
 
 
+--- www-authenticateヘッダを生成するhelper関数
 local function create_www_authenticate()
     local nonce = create_nonce()
     return 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
 end
 
 
--- Authorizationヘッダが空の時にDigest認証のポップアップを出す。
-local function is_authorization_header()
-    if not ngx.var.http_authorization then
-        local nonce = create_nonce()
-        ngx.header["WWW-Authenticate"] = create_www_authenticate()
-        ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
+-- WWW-Authorizationヘッダを返すhelper関数
+local function send_www_authorization_header()
+    local nonce = create_nonce()
+    ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
+    ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
+    ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 
 
@@ -42,7 +42,7 @@ local function connect_redis(redis_fqdn, redis_port)
     if not ok then
         -- redisに接続できない場合
         ngx.log(ngx.ERR, "failed to connect Redis: ", err)
-        return ngx.exit(500)
+        return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     return redis
 end
@@ -87,7 +87,7 @@ local function get_password_hash(user_id)
 end
 
 
--- MD5ハッシュを計算する関数
+-- MD5ハッシュを計算するhelper関数
 local function md5_hash(data)
     local md5 = resty_md5:new()
     md5:update(data)
@@ -96,7 +96,9 @@ end
 
 
 function _M.auth()
-    is_authorization_header()
+    if not ngx.var.http_authorization then
+        send_www_authorization_header()
+    end
 
     local username, realm, nonce, uri, response, qop, nc, cnonce = parse_authorization_header()
     ngx.log(ngx.INFO, "TRYING TO LOGIN: ", username)
@@ -104,9 +106,7 @@ function _M.auth()
     local password = get_password_hash(username)
     if not password then
         ngx.log(ngx.INFO, "NOT FOUND: ", username)
-        local nonce = create_nonce()
-        ngx.header["WWW-Authenticate"] = create_www_authenticate()
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        send_www_authorization_header()
     end
 
     -- HA1 = MD5(username:realm:password)
@@ -120,11 +120,8 @@ function _M.auth()
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", username)
         return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
-        --認証失敗時には再度Digest認証のポップアップを出す
         ngx.log(ngx.INFO, "LOGIN FAILED: ", username)
-        local nonce = create_nonce()
-        ngx.header["WWW-Authenticate"] = create_www_authenticate()
-        ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        send_www_authorization_header()
     end
 end
 return _M

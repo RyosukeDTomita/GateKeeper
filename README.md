@@ -59,15 +59,11 @@ Instead, I set here in the devcontainer.json.
 This allows for restarting openresty using shell command, as `overrideCommand` is used for the container's persistent process.
 
 ```shell
-# restart openresty
-ps -ef | grep openresty
-kill <processid>
-openresty
+openresty -s reload
 ```
 
 > [!NOTE]
->
-> - `openresty -s reload` not work well.
+> - Sometime, `openresty -s reload` not work well, then `openresty -s stop` and restart `openresty`.
 > - If use `postCreateCommand` instead of `PostStartCommand`, the following error occures.
 >
 >   ```
