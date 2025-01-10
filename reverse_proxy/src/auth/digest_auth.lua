@@ -27,8 +27,8 @@ local function create_www_authenticate()
 end
 
 
--- Authorizationヘッダを返すhelper関数
-local function return_authorization_header()
+-- WWW-Authorizationヘッダを返すhelper関数
+local function send_www_authorization_header()
     local nonce = create_nonce()
     ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
     ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
@@ -42,7 +42,7 @@ local function connect_redis(redis_fqdn, redis_port)
     if not ok then
         -- redisに接続できない場合
         ngx.log(ngx.ERR, "failed to connect Redis: ", err)
-        return ngx.exit(500)
+        return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     return redis
 end
@@ -97,7 +97,7 @@ end
 
 function _M.auth()
     if not ngx.var.http_authorization then
-        return_authorization_header()
+        send_www_authorization_header()
     end
 
     local username, realm, nonce, uri, response, qop, nc, cnonce = parse_authorization_header()
@@ -106,7 +106,7 @@ function _M.auth()
     local password = get_password_hash(username)
     if not password then
         ngx.log(ngx.INFO, "NOT FOUND: ", username)
-        return_authorization_header()
+        send_www_authorization_header()
     end
 
     -- HA1 = MD5(username:realm:password)
@@ -121,7 +121,7 @@ function _M.auth()
         return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
         ngx.log(ngx.INFO, "LOGIN FAILED: ", username)
-        return_authorization_header()
+        send_www_authorization_header()
     end
 end
 return _M

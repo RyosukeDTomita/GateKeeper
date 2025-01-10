@@ -4,7 +4,7 @@ local redis = resty_redis:new()
 
 
 -- WWW-Authenticateヘッダを返すhelper関数
-local function return_authorization_header()
+local function send_www_authorization_header()
     -- Basic認証のポップアップを出す。
     ngx.header["WWW-Authenticate"] = 'Basic realm="' .. ngx.var.host .. '/basic Restricted"'
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
@@ -26,7 +26,7 @@ local function connect_redis(redis_fqdn, redis_port)
     if not ok then
         -- redisに接続できない場合
         ngx.log(ngx.ERR, "failed to connect Redis: ", err)
-        return ngx.exit(500)
+        return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     return redis
 end
@@ -50,7 +50,7 @@ end
 
 function _M.auth()
     if not ngx.var.http_Authorization then
-        return_authorization_header()
+        send_www_authorization_header()
     end
 
     local user_id, password = decode_userid_and_password()
@@ -61,7 +61,7 @@ function _M.auth()
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", user_id)
         return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
-        return_authorization_header()
+        send_www_authorization_header()
         ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)
     end
 end
