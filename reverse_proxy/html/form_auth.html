@@ -4,16 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Authentication</title>
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <div>
-        <form method="POST" action="/form_auth">
+        <form method="POST" action="/form">
             <p>Enter your username and password</p>
-            <p><input type="text" name="username" placeholder="Username"></p>
-            <p><input type="password" name="password" placeholder="Password"></p>
+            <p><input type="text" name="user_id" placeholder="user_id"></p>
+            <p><input type="password" name="password" placeholder="password"></p>
             <p><input type="submit" value="Login"></p>
         </form>
-        <p style="display:none" id="login_result">Failed to login</p>
+        <p class="error">{{ error }}</p>
     </div>
 </body>
 </html>
