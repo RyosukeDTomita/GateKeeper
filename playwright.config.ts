@@ -33,12 +33,13 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
+  // NOTE: falseにするとブラウザが表示されるがGitHub Actionsで実行できなくなる
   projects: [
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        headless: false,
+        headless: true,
       },
     },
 

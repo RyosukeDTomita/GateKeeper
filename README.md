@@ -1,6 +1,7 @@
 # GateKeeper
 
 ![un license](https://img.shields.io/github/license/RyosukeDTomita/GateKeeper)
+[![Playwright Tests](https://github.com/RyosukeDTomita/GateKeeper/actions/workflows/playwright.yml/badge.svg)](https://github.com/RyosukeDTomita/GateKeeper/actions/workflows/playwright.yml)
 
 ## INDEX
 
