@@ -2,7 +2,7 @@ local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
 local basic_auth = require "basic_auth"
 local digest_auth = require "digest_auth"
---local form_auth = require "form_auth"
+local form_auth = require "form_auth"
 
 
 -- redisに接続する。compose.yamlのサービス名で名前解決できる
@@ -56,8 +56,8 @@ if acl["authentication_type"] == "basic" then
 elseif acl["authentication_type"] == "digest" then
     digest_auth.auth()
 elseif acl["authentication_type"] == "form" then
-    --form_auth.auth()
-    ngx.log(ngx.INFO, "WIP");
+    form_auth.auth()
+    --ログイン成功後にAccess Deniedになるがexample.com側の仕様ぽいので一旦無視
 end
 ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, ", REQUEST_URI: ",
         ngx.var.request_uri, ", AUTH_TYPE: ", acl["authentication_type"]);

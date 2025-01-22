@@ -41,7 +41,11 @@ local function get_user_password(user_id)
     if not password then
         -- redisからユーザのパスワードが取得できない場合
         ngx.log(ngx.ERR, "failed to get", user_id "password: ", err)
-        return
+        return nil
+    end
+    -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうので，nilを返す
+    if type(password) == "userdata" then
+        return nil
     end
     redis:close()
     return password
@@ -54,6 +58,7 @@ function _M.auth()
     end
 
     local user_id, password = decode_userid_and_password()
+
     ngx.log(ngx.INFO, "TRYING TO LOGIN: ", user_id)
     local saved_password = get_user_password(user_id)
 
