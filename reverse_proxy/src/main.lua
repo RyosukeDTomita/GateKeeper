@@ -37,6 +37,20 @@ local function get_acl(request_uri)
 end
 
 
+-- 認証タイプに応じた認証インスタンスを生成
+local function createAuthMap(authType)
+    if authType == "basic" then
+        return basic_auth
+    elseif authType == "digest" then
+        return digest_auth
+    elseif authType == "form" then
+        return form_auth
+    else
+        error("Invalid authentication type: " .. authType)
+    end
+end
+
+
 -- NOTE: 簡易的なURLの正規化をしてredisのキーとして利用している
 local request_uri = ngx.var.request_uri:gsub("/", "")
 -- /にアクセスした場合にはindex.htmlを返す。
@@ -46,18 +60,12 @@ if request_uri == "" then
 end
 
 local acl = get_acl(request_uri)
-
 -- proxy_passを更新して転送先のURLを設定
 ngx.var.pass = acl.proxy_pass .. "/" -- NOTE: 末尾に/をつけないと$request_urlの値が末尾につくため，404エラーになる
 
--- localhost/authentication_type/によって認証方式を切り替える
-if acl["authentication_type"] == "basic" then
-    basic_auth.auth()
-elseif acl["authentication_type"] == "digest" then
-    digest_auth.auth()
-elseif acl["authentication_type"] == "form" then
-    form_auth.auth()
-    --ログイン成功後にAccess Deniedになるがexample.com側の仕様ぽいので一旦無視
-end
+local auth_instance = createAuthMap(acl["authentication_type"])
+auth_instance.auth()
+
 ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, ", REQUEST_URI: ",
         ngx.var.request_uri, ", AUTH_TYPE: ", acl["authentication_type"]);
+
