@@ -27,15 +27,17 @@ rm -rf /var/lib/lists/
 EOF
 
 # install LuaRocks Lua
-RUN hererocks lua54 -l 5.4 -r latest
+# NOTE: OpenRestyは素のLuaではなく，LuaJITを使っているため，/usr/local/openresty/luajit/bin/luajitと同じバージョンのluajitを用意している。
+RUN hererocks luajit21 -j 2.1.0-beta3 -r latest
 
 # TODO: ライブラリをrockspeckとかで管理したい
 RUN <<EOF bash -ex
-PATH=$PATH":/usr/local/openresty/lua54/bin"
+PATH=$PATH":/usr/local/openresty/luajit21/bin"
 luarocks install lua-resty-redis
 luarocks install lua-resty-template
 luarocks install lua-resty-string
 luarocks install busted
+cp -r /usr/local/openresty/luajit21/lib/luarocks /usr/local/openresty/luajit/lib
 EOF
 
 # www-dataユーザがコンテナ実行時に発生する権限エラーを修正
