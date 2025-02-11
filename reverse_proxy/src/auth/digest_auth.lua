@@ -10,31 +10,33 @@ local md5_hash
 local create_www_authenticate
 local connect_redis
 
-
 -- nonceを生成する関数
 local function create_nonce()
     -- NOTE: ETagの代わりに乱数を使う
     local random_bytes = resty_random.bytes
-    local nonce = ngx.encode_base64(ngx.time() .. ":" .. random_bytes(3) .. ":" .. ngx.var.secret_data)
+    local nonce = ngx.encode_base64(
+                      ngx.time() .. ":" .. random_bytes(3) .. ":" ..
+                          ngx.var.secret_data)
     return nonce
 end
-
 
 --- www-authenticateヘッダを生成するhelper関数
 local function create_www_authenticate()
     local nonce = create_nonce()
-    return 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
+    return 'Digest realm="' .. ngx.var.host ..
+               '/digest Restricted", qop="auth", nonce="' .. nonce ..
+               ', algorithm=MD5"'
 end
-
 
 -- WWW-Authorizationヘッダを返すhelper関数
 local function send_www_authorization_header()
     local nonce = create_nonce()
-    ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host .. '/digest Restricted", qop="auth", nonce="' .. nonce .. ', algorithm=MD5"'
+    ngx.header["WWW-Authenticate"] = 'Digest realm="' .. ngx.var.host ..
+                                         '/digest Restricted", qop="auth", nonce="' ..
+                                         nonce .. ', algorithm=MD5"'
     ngx.log(ngx.INFO, "WWW-Authenticate: ", ngx.header["WWW-Authenticate"])
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
-
 
 -- redisに接続する。compose.yamlのサービス名で名前解決できる
 local function connect_redis(redis_fqdn, redis_port)
@@ -47,7 +49,6 @@ local function connect_redis(redis_fqdn, redis_port)
     return redis
 end
 
-
 -- Authorizationヘッダをパースしてユーザ名、パスワードのハッシュ、nonceを取得
 local function parse_authorization_header()
     local authorization = ngx.var.http_authorization
@@ -56,7 +57,7 @@ local function parse_authorization_header()
     for k, v in string.gmatch(authorization, '(%w+)="([^"]+)"') do
         auth_params[k] = v
     end
-    
+
     local username = auth_params.username
     local realm = auth_params.realm
     local nonce = auth_params.nonce
@@ -65,10 +66,9 @@ local function parse_authorization_header()
     local qop = authorization:match('qop=([^,]+)')
     local nc = authorization:match('nc=([^,]+)')
     local cnonce = auth_params.cnonce
-    --ngx.log(ngx.INFO, "Parsed Authorization - username: ", username, ", realm: ", realm, ", nonce: ", nonce, ", uri: ", uri, ", response: ", response, ", qop: ", qop, ", nc: ", nc, ", cnonce: ", cnonce)
+    -- ngx.log(ngx.INFO, "Parsed Authorization - username: ", username, ", realm: ", realm, ", nonce: ", nonce, ", uri: ", uri, ", response: ", response, ", qop: ", qop, ", nc: ", nc, ", cnonce: ", cnonce)
     return username, realm, nonce, uri, response, qop, nc, cnonce
 end
-
 
 -- redisからユーザIDに対応するパスワードを取得する。
 local function get_password_hash(user_id)
@@ -80,12 +80,9 @@ local function get_password_hash(user_id)
         return nil
     end
     -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうので，nilを返す
-    if type(password) == "userdata" then
-        return nil
-    end
+    if type(password) == "userdata" then return nil end
     return password
 end
-
 
 -- MD5ハッシュを計算するhelper関数
 local function md5_hash(data)
@@ -94,13 +91,11 @@ local function md5_hash(data)
     return str.to_hex(md5:final())
 end
 
-
 function _M.auth()
-    if not ngx.var.http_authorization then
-        send_www_authorization_header()
-    end
+    if not ngx.var.http_authorization then send_www_authorization_header() end
 
-    local username, realm, nonce, uri, response, qop, nc, cnonce = parse_authorization_header()
+    local username, realm, nonce, uri, response, qop, nc, cnonce =
+        parse_authorization_header()
     ngx.log(ngx.INFO, "TRYING TO LOGIN: ", username)
 
     local password = get_password_hash(username)
@@ -114,11 +109,13 @@ function _M.auth()
     -- HA2 = MD5(method:digestURI)
     local ha2 = md5_hash(ngx.req.get_method() .. ":" .. uri)
     -- response = MD5(HA1:nonce:nc:cnonce:qop:HA2)
-    local expected_response = md5_hash(ha1 .. ":" .. nonce .. ":" .. nc .. ":" .. cnonce .. ":" .. qop .. ":" .. ha2)
+    local expected_response = md5_hash(
+                                  ha1 .. ":" .. nonce .. ":" .. nc .. ":" ..
+                                      cnonce .. ":" .. qop .. ":" .. ha2)
 
     if response == expected_response then
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", username)
-        return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
+        return -- NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
         ngx.log(ngx.INFO, "LOGIN FAILED: ", username)
         send_www_authorization_header()

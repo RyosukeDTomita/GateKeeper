@@ -23,5 +23,8 @@
         "Koihik.vscode-lua-format" // formatter
       ]
     }
-  }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder}/.vscode,target=/usr/local/openresty/.vscode"
+  ]
 }

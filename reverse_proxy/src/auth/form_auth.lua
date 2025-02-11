@@ -5,7 +5,6 @@ local template = require "resty.template"
 local resty_random = require "resty.random"
 local SESSION_EXPIRATION_SECONDS = 3600
 
-
 -- redisに接続する。compose.yamlのサービス名で名前解決できる
 local function connect_redis(redis_fqdn, redis_port)
     local ok, err = redis:connect(redis_fqdn, redis_port)
@@ -17,7 +16,6 @@ local function connect_redis(redis_fqdn, redis_port)
     return redis
 end
 
-
 -- FormからユーザIDとパスワードを取得
 local function get_login_info()
     ngx.req.read_body()
@@ -25,17 +23,18 @@ local function get_login_info()
     return args["user_id"], args["password"]
 end
 
-
 -- form_auth_cookieを生成してset_cookieする
 local function set_form_auth_cookie(user_id)
     local random_bytes = resty_random.bytes(10)
     local encoded_random_bytes = ngx.encode_base64(random_bytes)
     local new_cookie = user_id .. encoded_random_bytes .. ngx.time()
-    ngx.header["Set-Cookie"] = "form_auth_cookie=" .. new_cookie .. "; Path=/form; Max-Age=" .. SESSION_EXPIRATION_SECONDS .. "; HttpOnly=true"
+    ngx.header["Set-Cookie"] = "form_auth_cookie=" .. new_cookie ..
+                                   "; Path=/form; Max-Age=" ..
+                                   SESSION_EXPIRATION_SECONDS ..
+                                   "; HttpOnly=true"
     ngx.log(ngx.INFO, "Set-Cookie: ", new_cookie)
     return new_cookie
 end
-
 
 -- form_auth_cookieをredisに保存する
 local function save_form_cookie(user_id, new_cookie)
@@ -46,7 +45,8 @@ local function save_form_cookie(user_id, new_cookie)
         ngx.log(ngx.ERR, "failed to save cookie: ", err)
         return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
-    local ok, err = redis:expire("SESSION|" .. user_id, SESSION_EXPIRATION_SECONDS)
+    local ok, err = redis:expire("SESSION|" .. user_id,
+                                 SESSION_EXPIRATION_SECONDS)
     if not ok then
         -- redisにcookieの有効期限を設定できない場合
         ngx.log(ngx.ERR, "failed to set expiration: ", err)
@@ -54,7 +54,6 @@ local function save_form_cookie(user_id, new_cookie)
     end
     redis:close()
 end
-
 
 -- redisに保存済みのcookieを取得
 local function get_saved_cookie(user_id)
@@ -69,7 +68,6 @@ local function get_saved_cookie(user_id)
     return cookie
 end
 
-
 -- redisからユーザのパスワードを取得
 local function get_user_password(user_id)
     local redis = connect_redis("redis_app", 6379)
@@ -82,13 +80,10 @@ local function get_user_password(user_id)
         return nil
     end
     -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうので，nilを返す
-    if type(password) == "userdata" then
-        return nil
-    end
+    if type(password) == "userdata" then return nil end
     redis:close()
     return password
 end
-
 
 function _M.auth()
     -- リクエストがPOSTでない場合はログインページを表示
@@ -117,7 +112,7 @@ function _M.auth()
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", user_id)
         local new_form_cookie = set_form_auth_cookie(user_id)
         save_form_cookie(user_id, new_form_cookie)
-        return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
+        return -- NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
         ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)
         template.render("form_auth.html", {error = "Failed to login"})
