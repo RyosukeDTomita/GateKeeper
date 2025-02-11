@@ -1,9 +1,7 @@
 local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
-local basic_auth = require "basic_auth"
-local digest_auth = require "digest_auth"
-local form_auth = require "form_auth"
 
+local auth_factory = require "auth_factory"
 
 -- redisに接続する。compose.yamlのサービス名で名前解決できる
 local function connect_redis(redis_fqdn, redis_port)
@@ -15,7 +13,6 @@ local function connect_redis(redis_fqdn, redis_port)
     end
     return redis
 end
-
 
 -- redisからACLを取得
 local function get_acl(request_uri)
@@ -36,21 +33,6 @@ local function get_acl(request_uri)
     return acl
 end
 
-
--- 認証タイプに応じた認証インスタンスを生成
-local function createAuthMap(authType)
-    if authType == "basic" then
-        return basic_auth
-    elseif authType == "digest" then
-        return digest_auth
-    elseif authType == "form" then
-        return form_auth
-    else
-        error("Invalid authentication type: " .. authType)
-    end
-end
-
-
 -- NOTE: 簡易的なURLの正規化をしてredisのキーとして利用している
 local request_uri = ngx.var.request_uri:gsub("/", "")
 -- /にアクセスした場合にはindex.htmlを返す。
@@ -63,9 +45,8 @@ local acl = get_acl(request_uri)
 -- proxy_passを更新して転送先のURLを設定
 ngx.var.pass = acl.proxy_pass .. "/" -- NOTE: 末尾に/をつけないと$request_urlの値が末尾につくため，404エラーになる
 
-local auth_instance = createAuthMap(acl["authentication_type"])
+local auth_instance = auth_factory.get_auth_instance(acl["authentication_type"])
 auth_instance.auth()
 
 ngx.log(ngx.INFO, "PROXY_PASS: ", ngx.var.pass, ", REQUEST_URI: ",
         ngx.var.request_uri, ", AUTH_TYPE: ", acl["authentication_type"]);
-

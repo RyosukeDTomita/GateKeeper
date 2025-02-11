@@ -2,14 +2,13 @@ local _M = {}
 local resty_redis = require "resty.redis"
 local redis = resty_redis:new()
 
-
 -- WWW-Authenticateヘッダを返すhelper関数
 local function send_www_authorization_header()
     -- Basic認証のポップアップを出す。
-    ngx.header["WWW-Authenticate"] = 'Basic realm="' .. ngx.var.host .. '/basic Restricted"'
+    ngx.header["WWW-Authenticate"] = 'Basic realm="' .. ngx.var.host ..
+                                         '/basic Restricted"'
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
-
 
 -- Authorizationヘッダからuseridとpasswordを取得
 local function decode_userid_and_password()
@@ -18,7 +17,6 @@ local function decode_userid_and_password()
     local userid, password = base64_decode:match("([^:]+):([^:]+)")
     return userid, password
 end
-
 
 -- redisに接続する。compose.yamlのサービス名で名前解決できる
 local function connect_redis(redis_fqdn, redis_port)
@@ -30,7 +28,6 @@ local function connect_redis(redis_fqdn, redis_port)
     end
     return redis
 end
-
 
 -- redisからユーザのパスワードを取得
 local function get_user_password(user_id)
@@ -44,18 +41,13 @@ local function get_user_password(user_id)
         return nil
     end
     -- NOTE: 存在しないユーザの際にuserdata型が返ってしまい，500エラーが発生し，ユーザの推測ができてしまうので，nilを返す
-    if type(password) == "userdata" then
-        return nil
-    end
+    if type(password) == "userdata" then return nil end
     redis:close()
     return password
 end
 
-
 function _M.auth()
-    if not ngx.var.http_Authorization then
-        send_www_authorization_header()
-    end
+    if not ngx.var.http_Authorization then send_www_authorization_header() end
 
     local user_id, password = decode_userid_and_password()
 
@@ -64,7 +56,7 @@ function _M.auth()
 
     if password == saved_password then
         ngx.log(ngx.INFO, "LOGIN SUCCESS: ", user_id)
-        return --NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
+        return -- NOTE: ngx.exit(ngx.HTTP_OK)を返すと，後続のコンテンツが表示されない
     else
         send_www_authorization_header()
         ngx.log(ngx.INFO, "LOGIN FAILED: ", user_id)

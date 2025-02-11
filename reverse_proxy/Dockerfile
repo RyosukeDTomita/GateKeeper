@@ -22,8 +22,8 @@ RUN <<EOF bash -ex
 apt-get install -y --no-install-recommends \
     python3 \
     python3-pip
-    pip install hererocks
-    rm -rf /var/lib/lists/
+pip install hererocks
+rm -rf /var/lib/lists/
 EOF
 
 # install LuaRocks Lua
@@ -35,9 +35,7 @@ PATH=$PATH":/usr/local/openresty/lua54/bin"
 luarocks install lua-resty-redis
 luarocks install lua-resty-template
 luarocks install lua-resty-string
-luarocks install http
-luarocks install lua-resty-balancer
-luarocks install lua-cjson
+luarocks install busted
 EOF
 
 # www-dataユーザがコンテナ実行時に発生する権限エラーを修正
